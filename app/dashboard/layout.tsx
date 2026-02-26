@@ -12,7 +12,7 @@ export default async function DashboardLayout({
   const token = cookieStore.get("session_token");
 
   if (!token) {
-    redirect(loginRoutes[0]);
+    redirect(loginRoutes[0].route);
   }
 
   return <AppShell>{children}</AppShell>;

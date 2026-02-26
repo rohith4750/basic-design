@@ -36,7 +36,16 @@ export const menuData: AppRouteConfig[] = [
   },
 ];
 
-export const loginRoutes = ["/login"] as const;
+export const loginRoutes: AppRouteConfig[] = [
+  {
+    name: "Login",
+    route: "/login",
+    file: "app/login/page.tsx",
+    icon: "login.svg",
+    permissions: "ALL",
+    showInSideMenu: false,
+  },
+];
 
 export const adminRoutes: AppRouteConfig[] = [
   ...menuData,
@@ -58,6 +67,8 @@ export const adminRoutes: AppRouteConfig[] = [
   },
 ];
 
+export const defaultDashboardRoute = menuData[0]?.route ?? "/dashboard/home";
+
 const rolePermissionMap: Record<string, PermissionKey[]> = {
   "frontend developer": ["ALL"],
   admin: ["ALL", "ADMIN"],
@@ -74,6 +85,28 @@ export function isRouteActive(pathname: string, route: string) {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
+function isDynamicMatch(pathname: string, routePattern: string) {
+  const pathSegments = pathname.split("/").filter(Boolean);
+  const patternSegments = routePattern.split("/").filter(Boolean);
+
+  if (pathSegments.length !== patternSegments.length) return false;
+
+  for (let i = 0; i < patternSegments.length; i += 1) {
+    const patternSegment = patternSegments[i];
+    if (patternSegment.startsWith("[") && patternSegment.endsWith("]")) {
+      continue;
+    }
+    if (patternSegment !== pathSegments[i]) return false;
+  }
+
+  return true;
+}
+
 export function getRouteByPath(pathname: string) {
-  return adminRoutes.find((item) => pathname === item.route || pathname.startsWith(`${item.route}/`));
+  return adminRoutes.find(
+    (item) =>
+      pathname === item.route ||
+      pathname.startsWith(`${item.route}/`) ||
+      isDynamicMatch(pathname, item.route),
+  );
 }
