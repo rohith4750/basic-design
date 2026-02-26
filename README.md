@@ -1,4 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a Next.js admin starter with fixed layout, auth screens, reusable UI components, and PostgreSQL integration.
+
+## Environment Setup
+
+Create `.env.local` (already added locally) with:
+
+```bash
+DB_USER=postgres
+DB_PASSWORD=rohith1234
+DB_HOST=localhost
+DB_NAME=demo
+DB_PORT=5432
+```
+
+You can also copy from `.env.example`.
+
+## PostgreSQL
+
+Start PostgreSQL locally, then run the app.  
+The `/api/dashboard/users` route connects to database `demo`, table `users`, and auto-seeds demo users on first request.
+
+## Routing System Structure
+
+The routing system structure is defined in:
+
+- `constants/menu.ts`
+
+This single config file controls:
+
+- `menuData`: Sidebar-visible menu items.
+- `loginRoutes`: Public routes outside dashboard layout.
+- `adminRoutes`: Internal dashboard routes (including hidden routes not shown in sidebar).
+
+Each route config item includes:
+
+- `name`: Display label.
+- `route`: URL path.
+- `file`: Component file path in this project.
+- `icon`: Icon file key.
+- `permissions`: Permission key.
+- `showInSideMenu`: If `true`, render in sidebar.
+
+## Add New Page
+
+1. Create page file in `app/dashboard/.../page.tsx`.
+2. Add route config object in `constants/menu.ts` (`menuData` or hidden `adminRoutes`).
+3. Sidebar and active route title update automatically from config.
 
 ## Getting Started
 
