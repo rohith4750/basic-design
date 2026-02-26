@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CompanyLogo } from "@/components/brand/company-logo";
 import { getRouteByPath, isRouteActive, menuData, permissionAccess } from "@/constants/menu";
 
 type UserProfile = {
@@ -57,12 +58,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="mb-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-600">Starter Kit</p>
-          <h1 className="mt-2 text-2xl font-bold text-slate-900">Admin UI</h1>
-        </div>
+        <section className="border-b border-slate-200 pb-5">
+          <CompanyLogo className="justify-center" />
+        </section>
 
-        <nav className="space-y-2">
+        <section className="mt-5 flex-1 overflow-y-auto">
+          <p className="mb-3 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">Menu</p>
+          <nav className="space-y-2">
           {sidebarItems.map((item) => {
             const active = isRouteActive(pathname, item.route);
             return (
@@ -80,15 +82,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-        </nav>
+          </nav>
+        </section>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="mt-auto rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-danger transition hover:bg-rose-100"
-        >
-          Logout
-        </button>
+        <section className="border-t border-slate-200 pt-4">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-danger transition hover:bg-rose-100"
+          >
+            Logout
+          </button>
+        </section>
       </aside>
 
       <div className="md:pl-64 lg:pl-72">
@@ -121,8 +126,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <footer className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 px-3 py-2.5 backdrop-blur md:left-64 md:px-5 lg:left-72 lg:px-8">
           <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between text-[11px] font-medium text-slate-500 sm:text-xs">
-            <p>Admin UI Starter</p>
-            <p className="hidden sm:block">All rights reserved</p>
+            <CompanyLogo compact />
+            <p className="hidden sm:block">Frame Flow Solutions Pvt Ltd</p>
           </div>
         </footer>
       </div>

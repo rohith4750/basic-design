@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { CompanyLogo } from "@/components/brand/company-logo";
 import { FormEngine, FormFieldConfig, FormValues } from "@/components/forms/form-engine";
 import { menuData } from "@/constants/menu";
 
@@ -38,27 +39,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-surface p-8 shadow-xl shadow-slate-200/60">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-600">Next.js Starter</p>
-        <h1 className="mt-3 text-3xl font-bold text-slate-900">Sign in</h1>
-        <p className="mt-2 text-sm text-slate-600">Use demo credentials to access the dashboard.</p>
+    <div className="flex min-h-screen items-center justify-center px-4 py-6 md:py-10">
+      <div className="grid w-full max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60 lg:grid-cols-2">
+        <section className="bg-surface p-6 md:p-8 lg:p-10">
+          <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">Sign in</h2>
+          <p className="mt-2 text-sm text-slate-600">Access your dashboard securely.</p>
 
-        <FormEngine
-          className="mt-8"
-          fields={loginFields}
-          initialValues={{ email: "admin@starter.com", password: "Admin@123" }}
-          validate={validateLogin}
-          onSubmit={submitLogin}
-          submitLabel="Sign in"
-          loadingLabel="Signing in..."
-        />
+          <FormEngine
+            className="mt-6"
+            fields={loginFields}
+            initialValues={{ email: "admin@starter.com", password: "Admin@123" }}
+            validate={validateLogin}
+            onSubmit={submitLogin}
+            submitLabel="Sign in"
+            loadingLabel="Signing in..."
+          />
 
-        <div className="mt-6 rounded-xl bg-slate-100 p-4 text-xs text-slate-600">
-          <p className="font-semibold text-slate-700">Demo:</p>
-          <p>Email: admin@starter.com</p>
-          <p>Password: Admin@123</p>
-        </div>
+          <div className="mt-5 rounded-xl bg-slate-100 p-4 text-xs text-slate-600">
+            <p className="font-semibold text-slate-700">Demo:</p>
+            <p>Email: admin@starter.com</p>
+            <p>Password: Admin@123</p>
+          </div>
+        </section>
+
+        <section className="relative flex min-h-[280px] items-center justify-center border-t border-slate-200 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-3 md:min-h-[360px] md:p-4 lg:min-h-full lg:border-l lg:border-t-0 lg:p-6">
+          <CompanyLogo fill className="h-full w-full justify-center" />
+        </section>
       </div>
     </div>
   );

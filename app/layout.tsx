@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Admin UI Starter",
-  description: "Next.js + Tailwind starter with auth, sidebar, toolbar, home, and profile.",
+  title: "Frame Flow Solutions Pvt Ltd",
+  description: "Frame Flow Solutions Pvt Ltd admin application.",
 };
 
 export default function RootLayout({
