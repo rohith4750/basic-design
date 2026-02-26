@@ -18,6 +18,15 @@ type DataTableProps<T> = {
   filterQuery?: string;
   filterFn?: (row: T, query: string) => boolean;
   emptyMessage?: string;
+  serverMode?: boolean;
+  page?: number;
+  rowsPerPage?: number;
+  totalItems?: number;
+  sortBy?: string;
+  sortDirection?: "asc" | "desc";
+  onPageChange?: (page: number) => void;
+  onRowsPerPageChange?: (rows: number) => void;
+  onSortChange?: (sortBy: string, sortDirection: "asc" | "desc") => void;
 };
 
 export function DataTable<T>({
@@ -28,19 +37,35 @@ export function DataTable<T>({
   filterQuery = "",
   filterFn,
   emptyMessage = "No data found.",
+  serverMode = false,
+  page,
+  rowsPerPage,
+  totalItems,
+  sortBy,
+  sortDirection,
+  onPageChange,
+  onRowsPerPageChange,
+  onSortChange,
 }: DataTableProps<T>) {
-  const [sortBy, setSortBy] = useState<string>("");
-  const [direction, setDirection] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [internalSortBy, setInternalSortBy] = useState<string>("");
+  const [internalDirection, setInternalDirection] = useState<"asc" | "desc">("asc");
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalRowsPerPage, setInternalRowsPerPage] = useState(5);
+
+  const activeSortBy = serverMode ? sortBy ?? "" : internalSortBy;
+  const activeDirection = serverMode ? sortDirection ?? "asc" : internalDirection;
+  const activePage = serverMode ? page ?? 1 : internalPage;
+  const activeRowsPerPage = serverMode ? rowsPerPage ?? 10 : internalRowsPerPage;
 
   const filtered = useMemo(() => {
+    if (serverMode) return data;
     if (!filterQuery || !filterFn) return data;
     return data.filter((row) => filterFn(row, filterQuery));
-  }, [data, filterFn, filterQuery]);
+  }, [data, filterFn, filterQuery, serverMode]);
 
   const sorted = useMemo(() => {
-    const selected = columns.find((column) => column.id === sortBy);
+    if (serverMode) return filtered;
+    const selected = columns.find((column) => column.id === activeSortBy);
     if (!selected?.sortValue) return filtered;
 
     return [...filtered].sort((a, b) => {
@@ -48,24 +73,52 @@ export function DataTable<T>({
       const bValue = selected.sortValue?.(b);
       if (aValue === undefined || bValue === undefined) return 0;
       if (aValue === bValue) return 0;
-      if (direction === "asc") return aValue > bValue ? 1 : -1;
+      if (activeDirection === "asc") return aValue > bValue ? 1 : -1;
       return aValue < bValue ? 1 : -1;
     });
-  }, [columns, direction, filtered, sortBy]);
+  }, [activeDirection, activeSortBy, columns, filtered, serverMode]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage));
-  const currentPage = Math.min(page, totalPages);
-  const paginated = sorted.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const totalCount = serverMode ? totalItems ?? data.length : sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / activeRowsPerPage));
+  const currentPage = Math.min(activePage, totalPages);
+  const paginated = serverMode
+    ? sorted
+    : sorted.slice((currentPage - 1) * activeRowsPerPage, currentPage * activeRowsPerPage);
+
+  const setPage = (nextPage: number) => {
+    if (serverMode) {
+      onPageChange?.(nextPage);
+    } else {
+      setInternalPage(nextPage);
+    }
+  };
+
+  const setRows = (rows: number) => {
+    if (serverMode) {
+      onRowsPerPageChange?.(rows);
+      onPageChange?.(1);
+    } else {
+      setInternalRowsPerPage(rows);
+      setInternalPage(1);
+    }
+  };
 
   const toggleSort = (column: TableColumn<T>) => {
     if (!column.sortValue) return;
-    setPage(1);
-    if (sortBy !== column.id) {
-      setSortBy(column.id);
-      setDirection("asc");
+
+    if (serverMode) {
+      const nextDirection = activeSortBy === column.id && activeDirection === "asc" ? "desc" : "asc";
+      onSortChange?.(column.id, nextDirection);
       return;
     }
-    setDirection((current) => (current === "asc" ? "desc" : "asc"));
+
+    setInternalPage(1);
+    if (internalSortBy !== column.id) {
+      setInternalSortBy(column.id);
+      setInternalDirection("asc");
+      return;
+    }
+    setInternalDirection((current) => (current === "asc" ? "desc" : "asc"));
   };
 
   return (
@@ -76,11 +129,8 @@ export function DataTable<T>({
           <span>Rows</span>
           <select
             className="rounded-lg border border-slate-300 bg-white px-2 py-1"
-            value={rowsPerPage}
-            onChange={(event) => {
-              setRowsPerPage(Number(event.target.value));
-              setPage(1);
-            }}
+            value={activeRowsPerPage}
+            onChange={(event) => setRows(Number(event.target.value))}
           >
             {[5, 10, 20].map((value) => (
               <option key={value} value={value}>
@@ -106,7 +156,7 @@ export function DataTable<T>({
                     className={`inline-flex items-center gap-1 ${column.sortValue ? "cursor-pointer hover:text-slate-800" : "cursor-default"}`}
                   >
                     <span>{column.header}</span>
-                    {sortBy === column.id ? <span>{direction === "asc" ? "^" : "v"}</span> : null}
+                    {activeSortBy === column.id ? <span>{activeDirection === "asc" ? "^" : "v"}</span> : null}
                   </button>
                 </th>
               ))}
@@ -141,7 +191,7 @@ export function DataTable<T>({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
             className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 disabled:opacity-50"
           >
@@ -149,7 +199,7 @@ export function DataTable<T>({
           </button>
           <button
             type="button"
-            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
             className="rounded-lg border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 disabled:opacity-50"
           >

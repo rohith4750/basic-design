@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader } from "@/components/ui/loader";
 
 type ProfileData = {
   name: string;
@@ -21,7 +22,11 @@ export default function ProfilePage() {
   }, []);
 
   if (!profile) {
-    return <div className="h-40 animate-pulse rounded-2xl bg-white/70" />;
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+        <Loader tone="accent" label="Loading profile..." />
+      </div>
+    );
   }
 
   return (

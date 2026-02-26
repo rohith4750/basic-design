@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ListFilters } from "@/components/filters/list-filters";
+import { useBackendList } from "@/components/filters/use-backend-list";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { DataTable, TableColumn } from "@/components/ui/data-table";
-import { InputField } from "@/components/ui/input-field";
+import { Button } from "@/components/ui/button";
+import { Loader } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast-provider";
 
 type DashboardStat = {
@@ -22,30 +26,52 @@ type UserRow = {
   lastLogin: string;
 };
 
+type UsersResponse = {
+  data: UserRow[];
+  meta: {
+    totalItems: number;
+  };
+};
+
 export default function DashboardHomePage() {
+  const router = useRouter();
+  const { showToast } = useToast();
   const [stats, setStats] = useState<DashboardStat[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [query, setQuery] = useState("");
+  const [totalItems, setTotalItems] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const { showToast } = useToast();
+
+  const listQuery = useBackendList({
+    initialFilters: { search: "", role: "", status: "" },
+    initialLimit: 5,
+    initialSortBy: "name",
+    initialSortDirection: "asc",
+  });
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/dashboard/stats").then((res) => (res.ok ? res.json() : Promise.reject())),
-      fetch("/api/dashboard/users").then((res) => (res.ok ? res.json() : Promise.reject())),
-    ])
-      .then(([statsResponse, usersResponse]) => {
-        setStats(statsResponse.data);
-        setUsers(usersResponse.data);
+    fetch("/api/dashboard/stats")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((response) => setStats(response.data))
+      .catch(() => setStats([]))
+      .finally(() => setStatsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch(`/api/dashboard/users?${listQuery.queryString}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((response: UsersResponse) => {
+        setUsers(response.data ?? []);
+        setTotalItems(response.meta?.totalItems ?? 0);
       })
       .catch(() => {
-        setStats([]);
         setUsers([]);
+        setTotalItems(0);
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => setUsersLoading(false));
+  }, [listQuery.queryString]);
 
   const selectedUser = users.find((user) => user.id === deleteId) ?? null;
 
@@ -54,9 +80,10 @@ export default function DashboardHomePage() {
     setDeleting(true);
     await new Promise((resolve) => setTimeout(resolve, 450));
     setUsers((current) => current.filter((user) => user.id !== deleteId));
+    setTotalItems((current) => Math.max(0, current - 1));
     setDeleteId(null);
     setDeleting(false);
-    showToast("User removed successfully.", "success");
+    showToast("User removed from the current list.", "success");
   };
 
   const columns: TableColumn<UserRow>[] = [
@@ -69,9 +96,9 @@ export default function DashboardHomePage() {
           <p className="text-xs text-slate-500">{row.email}</p>
         </div>
       ),
-      sortValue: (row) => row.name.toLowerCase(),
+      sortValue: () => 0,
     },
-    { id: "role", header: "Role", cell: (row) => row.role, sortValue: (row) => row.role.toLowerCase() },
+    { id: "role", header: "Role", cell: (row) => row.role, sortValue: () => 0 },
     {
       id: "status",
       header: "Status",
@@ -88,9 +115,9 @@ export default function DashboardHomePage() {
           {row.status}
         </span>
       ),
-      sortValue: (row) => row.status.toLowerCase(),
+      sortValue: () => 0,
     },
-    { id: "lastLogin", header: "Last Login", cell: (row) => row.lastLogin, sortValue: (row) => row.lastLogin },
+    { id: "lastLogin", header: "Last Login", cell: (row) => row.lastLogin, sortValue: () => 0 },
     {
       id: "actions",
       header: "Actions",
@@ -120,18 +147,17 @@ export default function DashboardHomePage() {
     <section className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">Home</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Complete setup with table components, toasts, confirmation modal, and input fields.
-        </p>
+        <p className="mt-2 text-sm text-slate-600">Backend-friendly list filtering for better API integration.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {loading &&
-          [1, 2, 3, 4].map((item) => (
-            <div key={item} className="h-32 animate-pulse rounded-2xl bg-white/70" />
-          ))}
+        {statsLoading ? (
+          <div className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center">
+            <Loader tone="accent" label="Loading dashboard data..." />
+          </div>
+        ) : null}
 
-        {!loading &&
+        {!statsLoading &&
           stats.map((item) => (
             <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-sm font-medium text-slate-500">{item.label}</p>
@@ -141,36 +167,74 @@ export default function DashboardHomePage() {
           ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-          <InputField
-            label="Search users"
-            placeholder="Search by name, email, role or status"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button
-            type="button"
-            className="h-[46px] w-full rounded-xl bg-accent px-4 text-sm font-semibold text-white transition hover:brightness-110 md:w-auto"
-            onClick={() => showToast("Add user action clicked.", "success")}
-          >
+      <ListFilters
+        title="User Filters"
+        fields={[
+          {
+            key: "search",
+            label: "Search users",
+            type: "search",
+            placeholder: "Search by name, email, role",
+          },
+          {
+            key: "role",
+            label: "Role",
+            type: "select",
+            options: [
+              { label: "All Roles", value: "" },
+              { label: "Frontend Engineer", value: "Frontend Engineer" },
+              { label: "Backend Engineer", value: "Backend Engineer" },
+              { label: "UI Designer", value: "UI Designer" },
+              { label: "QA Engineer", value: "QA Engineer" },
+              { label: "Product Manager", value: "Product Manager" },
+              { label: "DevOps Engineer", value: "DevOps Engineer" },
+            ],
+          },
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { label: "All Status", value: "" },
+              { label: "Active", value: "Active" },
+              { label: "Pending", value: "Pending" },
+              { label: "Inactive", value: "Inactive" },
+            ],
+          },
+        ]}
+        values={listQuery.filters}
+        onChange={listQuery.setFilterValue}
+        onReset={listQuery.resetFilters}
+        hasActiveFilters={listQuery.hasActiveFilters}
+        actions={
+          <Button type="button" onClick={() => router.push("/dashboard/users/add")} className="py-2">
             Add User
-          </button>
-        </div>
-      </div>
-
-      <DataTable
-        title="Team Members"
-        columns={columns}
-        data={users}
-        rowKey={(row) => row.id}
-        filterQuery={query}
-        filterFn={(row, search) => {
-          const q = search.toLowerCase();
-          return [row.name, row.email, row.role, row.status].some((item) => item.toLowerCase().includes(q));
-        }}
-        emptyMessage="No users match the filter."
+          </Button>
+        }
       />
+
+      {usersLoading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+          <Loader tone="accent" label="Loading users..." />
+        </div>
+      ) : (
+        <DataTable
+          title="Team Members"
+          columns={columns}
+          data={users}
+          rowKey={(row) => row.id}
+          emptyMessage="No users match the filters."
+          serverMode
+          page={listQuery.page}
+          rowsPerPage={listQuery.limit}
+          totalItems={totalItems}
+          sortBy={listQuery.sortBy}
+          sortDirection={listQuery.sortDirection}
+          onPageChange={listQuery.setPage}
+          onRowsPerPageChange={listQuery.setLimit}
+          onSortChange={listQuery.onSortChange}
+        />
+      )}
 
       <ConfirmModal
         open={Boolean(deleteId)}

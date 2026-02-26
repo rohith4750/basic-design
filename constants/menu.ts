@@ -26,6 +26,14 @@ export const menuData: AppRouteConfig[] = [
     permissions: "ALL",
     showInSideMenu: true,
   },
+  {
+    name: "Users",
+    route: "/dashboard/users",
+    file: "app/dashboard/users/page.tsx",
+    icon: "users.svg",
+    permissions: "ALL",
+    showInSideMenu: true,
+  },
 ];
 
 export const loginRoutes = ["/login"] as const;
